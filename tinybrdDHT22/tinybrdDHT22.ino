@@ -1,17 +1,19 @@
 #include <SPI.h>
 #include <Radio.h>
 #include <Battery.h>
+#include <dht.h>
 
+dht DHT22;
 
 #define RETRIES_LIMIT 5
-#define SLEEP_TIME 1000
-
+#define SLEEP_TIME 60000
+#define DHT22PIN 1
 struct Data 
 {
   byte tinyId;
   unsigned long batteryCharge;
-  float temperature;
-  float humidity;
+  double temperature;
+  double humidity;
   byte retries;  //number of retries
   unsigned long lostData;  //how many Data structures lost
 } data;
@@ -60,6 +62,28 @@ void sendData (struct Data &data, byte retries = 0)
 void loop() 
 {
   data.batteryCharge = batteryRead(); //read battery load
+  delay(1000);
+  int chk = DHT22.read(DHT22PIN);
+  switch (chk)
+  {
+    case DHTLIB_OK:
+      data.temperature = DHT22.temperature;
+      data.humidity = DHT22.humidity;
+      break;
+    case DHTLIB_ERROR_CHECKSUM:
+      data.temperature = -1;
+      data.humidity = -1;
+      break;
+    case DHTLIB_ERROR_TIMEOUT:
+      data.temperature = -2;
+      data.humidity = -2;
+      break;
+    default:
+      data.temperature = -3;
+      data.humidity = -3;
+      break;
+  }  
+
   
   //sending data;
   sendData(data);
